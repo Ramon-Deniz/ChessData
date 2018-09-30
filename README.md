@@ -12,7 +12,7 @@ This repository was made to visualize arbitrary patterns in Chess gathered and a
 
 ## Heatmap of Chess Moves
 
-Gathered from 10.8 million games, every heatmap visualizes the location of peices or the location of certain game events.
+Gathered from 10.8 million games, every heatmap visualizes the location of pieces or the location of certain game events.
 <br/>
 <br/>
 <br/>
