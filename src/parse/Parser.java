@@ -1,18 +1,25 @@
 package parse;
 
 import game.Game;
+import game.Move;
 
-import java.io.*;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PushbackReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class Parser {
 
     private Game game;
     private Map tags;
-    private List<Move> moveList;
+    private ArrayList<Move> moveList;
 
-
+    private char c;
     private PushbackReader reader;
     private int line;
 
@@ -27,7 +34,7 @@ public class Parser {
     }
 
 
-    private Game nextGame() {
+    public Game nextGame() throws Exception {
         tags = new HashMap<>();
         moveList = new ArrayList<>();
         game = new Game();
@@ -39,43 +46,71 @@ public class Parser {
         return game;
     }
 
-    private void parseTagList() {
-
+    private void parseTagList() throws Exception {
+        parseTag();
+        char pc = peek();
+        if (pc == '[') {
+            parseTagList();
+        }
     }
 
     private void parseMoveList() {
 
     }
 
-    // parse individual tag [key value]
+    /**
+     * Parse individual key and value pairs and adds to hashmap
+     *
+     * @throws Exception
+     */
     private void parseTag() throws Exception {
-        char c = peek();
-        if (c == '[') {
-            c = next();
-            String key = nextToken();
+        char pc = peek();
+        if (pc == '[') {
+            next();
+            
+            String key = parseKey();
             if (!isWhiteSpace(c)) {
-                throwException("White space character expected after key.");
+                throwException("White space character expected after key.", c);
             }
 
-            String value = nextToken();
+            String value = parseValue();
             if (c != ']') {
-                throwException("']' character expected after value. ");
+                throwException("']' character expected after value. ", c);
             }
-            tags.ad
+
+            readLine();
+            line++;
+            tags.put(key, value);
         } else {
-            throwException("'[' character expected for start of tag.");
+            throwException("'[' character expected for start of tag.", c);
         }
     }
 
     /**
-     * @return the next series of characters as a string with a whitespace being the terminating character
+     * 
+     * @return the key in a tag as a string
      */
-    private String nextToken() {
+    private String parseKey() throws Exception{
         StringBuilder stringBuilder = new StringBuilder();
-        c = next();
-        while (!isWhiteSpace() && c != 0) {
+        next();
+        while (!isWhiteSpace(c) && c != 0) {
             stringBuilder.append(c);
-            c = next();
+            next();
+        }
+
+        return stringBuilder.toString();
+    }
+
+    /**
+     * 
+     * @return the value in a tag as a string
+     */
+    private String parseValue() {
+        StringBuilder stringBuilder = new StringBuilder();
+        next();
+        while (c != ']' && c != 0) {
+            stringBuilder.append(c);
+            next();
         }
 
         return stringBuilder.toString();
@@ -96,16 +131,27 @@ public class Parser {
      *
      * @return character parsed with reader
      */
-    private char next() {
+    private void next() {
         try {
             int c = reader.read();
 
-            return (char) c;
+            this.c = (char) c;
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("Error reading from PushBackReader.");
 
-            return 0;
+            this.c = 0;
+        }
+    }
+
+    /**
+     * Reads from the PushBackReader until a newline character is reached
+     */
+    private void readLine() {
+        next();
+
+        while (c != '\n') {
+            next();
         }
     }
 
@@ -127,9 +173,18 @@ public class Parser {
             return 0;
         }
     }
+    
+    private void pushBack(char c) {
+        try {
+            reader.unread(c);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Error pushing back for: " + c);
+        }
+    }
 
-    private void throwException(String message) {
-        throw new Exception(message + " Line: " + line);
+    private void throwException(String message, char c) throws Exception {
+        throw new Exception(message + " Line: " + line + ". Current ASCII: " + ((int) (c)));
     }
 
 }
