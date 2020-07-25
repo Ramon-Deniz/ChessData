@@ -3,7 +3,6 @@ package parse;
 import game.Game;
 import game.Move;
 
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -41,7 +40,8 @@ public class Parser {
         game.setTags(tags);
         game.setMoves(moveList);
         parseTagList();
-        parseMoveList();
+        readLine();
+        parseTurnList();
 
         return game;
     }
@@ -54,8 +54,12 @@ public class Parser {
         }
     }
 
-    private void parseMoveList() {
-
+    private void parseTurnList() throws Exception{
+        parseTurn();
+        char pc = peek();
+        if (pc >= '1' && pc <= '9') {
+            parseTurnList();
+        }
     }
 
     /**
@@ -67,30 +71,32 @@ public class Parser {
         char pc = peek();
         if (pc == '[') {
             next();
-            
+
             String key = parseKey();
-            if (!isWhiteSpace(c)) {
-                throwException("White space character expected after key.", c);
-            }
+            expectWhiteSpace();
 
             String value = parseValue();
-            if (c != ']') {
-                throwException("']' character expected after value. ", c);
-            }
+            expectChar(']', "']' character expected after value. ");
 
             readLine();
-            line++;
             tags.put(key, value);
         } else {
-            throwException("'[' character expected for start of tag.", c);
+            throwException("'[' character expected for start of tag.");
         }
     }
 
+    private void parseTurn() throws Exception {
+        int turnNumber = parseNumber();
+        expectChar('.', "'.' character expected after turn number.");
+        next();
+        expectWhiteSpace();
+        parseMove();
+    }
+
     /**
-     * 
      * @return the key in a tag as a string
      */
-    private String parseKey() throws Exception{
+    private String parseKey() throws Exception {
         StringBuilder stringBuilder = new StringBuilder();
         next();
         while (!isWhiteSpace(c) && c != 0) {
@@ -102,7 +108,6 @@ public class Parser {
     }
 
     /**
-     * 
      * @return the value in a tag as a string
      */
     private String parseValue() {
@@ -117,13 +122,21 @@ public class Parser {
     }
 
     /**
-     * @param c
-     * @return if character is whitespace
+     * Any consecutive characters that are numbers will be parsed, and will terminate when a non-number
+     * character appears.
+     *
+     * @return parsed sequence of digit characters as an integer
      */
-    private boolean isWhiteSpace(char c) {
-        if (c == ' ' || c == '\n' || c == '\t')
-            return true;
-        return false;
+    private int parseNumber() {
+        int number = 0;
+        next();
+        while (c >= '0' && c <= '9') {
+            number *= 10;
+            number += (c - '0');
+            next();
+        }
+
+        return number;
     }
 
     /**
@@ -153,6 +166,8 @@ public class Parser {
         while (c != '\n') {
             next();
         }
+
+        line++;
     }
 
     /**
@@ -173,7 +188,29 @@ public class Parser {
             return 0;
         }
     }
-    
+
+    private void expectChar(char expected, String message) throws Exception {
+        if (c != expected) {
+            throwException(message);
+        }
+    }
+
+    private void expectWhiteSpace() throws Exception{
+        if (c != ' ' && c != '\t') {
+            throwException("White space character expected after key.");
+        }
+    }
+
+    /**
+     * @param c
+     * @return if character is whitespace
+     */
+    private boolean isWhiteSpace(char c) {
+        if (c == ' ' || c == '\t')
+            return true;
+        return false;
+    }
+
     private void pushBack(char c) {
         try {
             reader.unread(c);
@@ -183,7 +220,7 @@ public class Parser {
         }
     }
 
-    private void throwException(String message, char c) throws Exception {
+    private void throwException(String message) throws Exception {
         throw new Exception(message + " Line: " + line + ". Current ASCII: " + ((int) (c)));
     }
 
